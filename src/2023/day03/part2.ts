@@ -7,25 +7,31 @@ export async function part2(filePath: string): Promise<number> {
 		crlfDelay: Number.POSITIVE_INFINITY,
 	});
 
-	let powerSum = 0;
-
+	const lines: string[] = [];
 	for await (const line of rl) {
-		const [, cubes] = line.split(': ');
-		const cubesReveal = cubes
-			.split('; ')
-			.flatMap(revealLine => revealLine.split(', '))
-			.map(revealLine => revealLine.split(' '))
-			.map<[number, string]>(([count, color]) => [Number(count), color])
-			.reduce<Record<string, number>>(
-				(acc, [count, color]) => ({
-					...acc,
-					[color]: Math.max(acc[color] || count, count),
-				}),
-				{},
-			);
-
-		powerSum += Object.values(cubesReveal).reduce((sum, count) => sum * count, 1);
+		lines.push(line);
 	}
 
-	return powerSum;
+	const allPartNumbers: number[] = [];
+
+	lines.forEach((line, i) => {
+		const prev = lines[i - 1] || '';
+		const next = lines[i + 1] || '';
+
+		const partNumbers = Array.from(line.matchAll(/\d+/g))
+			.map(({ 0: number, index }) => {
+				const start = Math.max(index! - 1, 0);
+				const end = index! + number.length + 1;
+				return {
+					number,
+					searchStr: prev.slice(start, end) + line.slice(start, end) + next.slice(start, end),
+				};
+			})
+			.filter(({ searchStr }) => searchStr.search(/[^\w\d.]/) >= 0)
+			.map(({ number }) => Number(number));
+
+		allPartNumbers.push(...partNumbers);
+	});
+
+	return allPartNumbers.reduce((sum, number) => sum + number, 0);
 }
